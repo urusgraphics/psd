@@ -1,0 +1,47 @@
+name: Publish
+on:
+  workflow_dispatch:
+  push:
+    branches:
+      - main
+
+run-name: Publish on ${{ github.ref_name }}
+
+jobs:
+  publish:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: 20
+
+      - name: Install Rust with specific Cargo version
+        uses: actions-rs/toolchain@v1
+        with:
+          toolchain: 1.71.1
+          profile: minimal
+          override: true
+
+      - name: Prepare git
+        run: |
+          git config user.name urus-cibot
+          git config user.email urus-cibot@users.noreply.github.com
+
+      - name: npm login
+        run: |
+          echo "@urusgraphics:registry=https://npm.pkg.github.com" >> ~/.npmrc
+          echo "//npm.pkg.github.com/:_authToken=${{ secrets.GITHUB_TOKEN }}" >> ~/.npmrc
+        shell: bash
+
+      - name: Install dependencies
+        run: npm ci
+
+      - name: Build
+        run: npm run build
+
+      - name: Release
+        run: npm run release
